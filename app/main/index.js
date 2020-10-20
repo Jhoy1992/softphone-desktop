@@ -33,12 +33,12 @@ app.on('ready', async () => {
 
   mainWindow = new BrowserWindow({
     width: 640,
-    height: 445,
-    minWidth: 640,
-    minHeight: 445,
+    height: 450,
     show: false,
-    // frame: false,
+    frame: false,
+    transparent: true,
     resizable: false,
+    icon: path.join(__dirname, '../renderer/assets/icon.png'),
     // alwaysOnTop: true,
     webPreferences: {
       nodeIntegration: true,
@@ -78,12 +78,8 @@ app.on('ready', async () => {
 
   mainWindow.setMenuBarVisibility(false);
 
-  setInterval(function () {
-    mainWindow.webContents.send('keydown', { teste: 'teste' });
-  }, 3000);
-
   if (isDevelopment) {
-    mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools({ mode: 'right' });
 
     mainWindow.webContents.on('context-menu', (e, props) => {
       Menu.buildFromTemplate([

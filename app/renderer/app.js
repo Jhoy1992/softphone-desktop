@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 
 import Routes from './routes';
 
@@ -11,9 +11,9 @@ const rootElement = document.querySelector(document.currentScript.getAttribute('
 ReactDOM.render(
   <>
     <GlobalStyle />
-    <Router>
+    <HashRouter>
       <Routes />
-    </Router>
+    </HashRouter>
   </>,
   rootElement,
 );

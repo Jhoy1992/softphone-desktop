@@ -3,7 +3,6 @@ import * as JsSIP from 'jssip';
 
 import useRefferedState from '../../hooks/useReferredState';
 import PlayTone from '../../utils/tones';
-
 import {
   FaMicrophone,
   FaMicrophoneSlash,
@@ -13,6 +12,7 @@ import {
   FaPhoneAlt,
 } from 'react-icons/fa';
 
+import Header from '../../components/Header';
 import {
   Container,
   Display,
@@ -31,7 +31,7 @@ import {
 
 const DIAL_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
 
-const Home = () => {
+const Home = ({ history }) => {
   const [dialNumbers] = useState(DIAL_KEYS);
   const [callNumber, callNumberRef, setCallNumber] = useRefferedState('');
   const [phoneStatus, setPhoneStatus] = useState('');
@@ -83,7 +83,7 @@ const Home = () => {
   };
 
   const unregister = () => {
-    document.removeEventListener('keydown');
+    // document.removeEventListener('keydown');
 
     if (!phone) {
       return;
@@ -348,76 +348,79 @@ const Home = () => {
   };
 
   return (
-    <Container>
-      <Display>
-        {session && (
-          <Duration>
-            {session?.start_time && (
-              <div>Início: {new Date(session.start_time).toLocaleTimeString('pt-BR')}</div>
-            )}
+    <>
+      <Header />
+      <Container>
+        <Display>
+          {session && (
+            <Duration>
+              {session?.start_time && (
+                <div>Início: {new Date(session.start_time).toLocaleTimeString('pt-BR')}</div>
+              )}
 
-            {!!callTime && <div>Tempo: {secondsToHms(callTime)}</div>}
-          </Duration>
-        )}
+              {!!callTime && <div>Tempo: {secondsToHms(callTime)}</div>}
+            </Duration>
+          )}
 
-        <Divisor />
+          <Divisor />
 
-        {!session && <CallNumber>{callNumber}</CallNumber>}
+          {!session && <CallNumber>{callNumber}</CallNumber>}
 
-        {session && (
-          <CallerInfo>
-            <h3>{callStatus}</h3>
+          {session && (
+            <CallerInfo>
+              <h3>{callStatus}</h3>
 
-            {!!caller?.number && (
-              <h1>
-                {caller.number} {caller?.name && <> - {caller.name}</>}
-              </h1>
-            )}
-          </CallerInfo>
-        )}
+              {!!caller?.number && (
+                <h1>
+                  {caller.number} {caller?.name && <> - {caller.name}</>}
+                </h1>
+              )}
+            </CallerInfo>
+          )}
 
-        <PeerInfo>
-          <div>
-            <FaPhoneAlt size={6} /> 100
-          </div>
-          <div>{phoneStatus}</div>
-        </PeerInfo>
-      </Display>
+          <PeerInfo>
+            <div>
+              <FaPhoneAlt size={6} /> 100
+            </div>
+            <div>{phoneStatus}</div>
+          </PeerInfo>
+        </Display>
 
-      <DialPad>
-        {dialNumbers.map(dialNumber => (
-          <DialNumber key={dialNumber} onClick={() => padClick(dialNumber)}>
-            {dialNumber}
-          </DialNumber>
-        ))}
+        <DialPad>
+          {dialNumbers.map(dialNumber => (
+            <DialNumber key={dialNumber} onClick={() => padClick(dialNumber)}>
+              {dialNumber}
+            </DialNumber>
+          ))}
 
-        <Microphone disabled={!session?.isEstablished()} onClick={mute}>
-          {session?.isMuted().audio ? <FaMicrophoneSlash size={30} /> : <FaMicrophone />}
-        </Microphone>
+          <Microphone disabled={!session?.isEstablished()} onClick={mute}>
+            {session?.isMuted().audio ? <FaMicrophoneSlash size={30} /> : <FaMicrophone />}
+          </Microphone>
 
-        {session ? (
-          <HangupButton>
-            <FaPhoneSlash color="#dc3545" size={30} onClick={() => clearSession(session)} />
-          </HangupButton>
-        ) : (
-          <Erase>
-            <FaBackspace size={30} onClick={() => padClick(null, 8)} />
-          </Erase>
-        )}
+          {session ? (
+            <HangupButton>
+              <FaPhoneSlash color="#dc3545" size={30} onClick={() => clearSession(session)} />
+            </HangupButton>
+          ) : (
+            <Erase>
+              <FaBackspace size={30} onClick={() => padClick(null, 8)} />
+            </Erase>
+          )}
 
-        <AnswerButton
-          disabled={
-            !phone?.isRegistered() ||
-            session?.isEstablished() ||
-            (session?.isInProgress() && session?.direction !== 'incoming')
-          }>
-          <FaPhone color="#389400" onClick={answerOrCall} />
-        </AnswerButton>
-      </DialPad>
+          <AnswerButton
+            disabled={
+              !phone?.isRegistered() ||
+              session?.isEstablished() ||
+              (session?.isInProgress() && session?.direction !== 'incoming')
+            }>
+            <FaPhone color="#389400" onClick={answerOrCall} />
+          </AnswerButton>
+        </DialPad>
 
-      <audio ref={ringAudio} src={ringtone} />
-      <audio ref={remoteAudio} />
-    </Container>
+        <audio ref={ringAudio} src={ringtone} />
+        <audio ref={remoteAudio} />
+      </Container>
+    </>
   );
 };
 

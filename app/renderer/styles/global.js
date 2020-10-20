@@ -9,14 +9,14 @@ export default createGlobalStyle`
   }
 
   body {
-    background: #F0F2F5 ;
-    -webkit-font-smoothing: antialiased
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
   }
 
   body, input, button {
     font-family: Arial, sans-serif;
     font-size: 0.9rem;
-    color: #212529
+    color: #212529;
   }
 
   button {

@@ -3,12 +3,12 @@ import React from 'react';
 import { Switch, Route } from 'react-router-dom';
 
 import Home from './components/Home';
-// import LoggedInPage from './components/LoggedIn';
+import Configurations from './components/Configurations';
 
 const Routes = () => (
   <Switch>
-    <Route path="/" component={Home} />
-    {/* <Route exact path="/loggedin" component={LoggedInPage} /> */}
+    <Route path="/" exact component={Home} />
+    <Route path="/configurations" component={Configurations} />
   </Switch>
 );
 
