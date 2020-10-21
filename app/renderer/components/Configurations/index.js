@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+
+import { store } from '../../store';
+import { addNotification } from '../../actions/notificationsActions';
 
 import Header from '../../components/Header';
 import { Container, Devices, Controls } from './styles';
 
 const Configurations = ({ history }) => {
+  const { state, dispatch } = useContext(store);
   const [devices, setDevices] = useState({});
   const [headphone, setHeadphone] = useState({ id: 'default', volume: 1 });
   const [speaker, setSpeaker] = useState({ id: 'default', volume: 1 });
@@ -31,7 +35,12 @@ const Configurations = ({ history }) => {
     localStorage.setItem('headphone', JSON.stringify(headphone));
     localStorage.setItem('microphone', microphone);
 
-    toast('Configurações salvas!');
+    dispatch(
+      addNotification({
+        message: 'Configurações salvas com sucesso!',
+        type: 'success',
+      }),
+    );
   };
 
   const handleSelectHeadphone = event => {
