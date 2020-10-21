@@ -47,6 +47,8 @@ const Home = ({ history }) => {
   useEffect(() => {
     register();
 
+    console.log(localStorage.getItem('speaker'));
+
     return unregister;
   }, []);
 

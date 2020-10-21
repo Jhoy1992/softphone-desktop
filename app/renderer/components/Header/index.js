@@ -26,7 +26,7 @@ const Header = ({ title }) => {
 
       <div>
         {title ? (
-          <h3>{title}</h3>
+          <h4>{title}</h4>
         ) : (
           <img src="assets/logo_horizontal.png" alt="Logo native" height={18} />
         )}
