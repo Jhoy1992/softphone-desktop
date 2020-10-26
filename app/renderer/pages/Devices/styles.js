@@ -5,9 +5,10 @@ export const Container = styled.div`
   display: flex;
   flex-direction: column;
   line-height: 1rem;
+  min-height: 94vh;
 `;
 
-export const Devices = styled.div`
+export const ListDevices = styled.div`
   display: flex;
   flex-direction: column;
 

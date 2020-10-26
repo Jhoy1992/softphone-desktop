@@ -1,11 +1,15 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useContext } from 'react';
 import { remote } from 'electron';
 import { AiFillCloseCircle, AiFillMinusCircle, AiOutlineMenu } from 'react-icons/ai';
+
+import { store } from '../../store';
+import { toggleMenu } from '../../actions/menuActions';
 
 import { Container } from './styles';
 
 const Header = ({ title }) => {
+  const { dispatch, state } = useContext(store);
+
   const closeWindow = () => {
     const currentWindow = remote.getCurrentWindow();
     currentWindow.close();
@@ -16,12 +20,14 @@ const Header = ({ title }) => {
     currentWindow.minimize();
   };
 
+  const handleToggleMenu = () => {
+    dispatch(toggleMenu(!state.showMenu));
+  };
+
   return (
     <Container>
       <div>
-        <Link to="/configurations">
-          <AiOutlineMenu color="#fff" size={18} />
-        </Link>
+        <AiOutlineMenu color="#fff" size={18} onClick={handleToggleMenu} />
       </div>
 
       <div>

@@ -2,19 +2,30 @@ import React, { useState, useEffect, useContext } from 'react';
 
 import { store } from '../../store';
 import { addNotification } from '../../actions/notificationsActions';
+import { toggleMenu } from '../../actions/menuActions';
+import { saveDevices } from '../../actions/devicesActions';
 
 import Header from '../../components/Header';
-import { Container, Devices, Controls } from './styles';
+import Menu from '../../components/Menu';
+import { Container, ListDevices, Controls } from './styles';
 
-const Configurations = ({ history }) => {
-  const { state, dispatch } = useContext(store);
+const Devices = ({ history }) => {
+  const { dispatch, state } = useContext(store);
   const [devices, setDevices] = useState({});
-  const [headphone, setHeadphone] = useState({ id: 'default', volume: 1 });
-  const [speaker, setSpeaker] = useState({ id: 'default', volume: 1 });
-  const [microphone, setMicrophone] = useState('default');
+  const [headphone, setHeadphone] = useState({ label: 'default', volume: 1 });
+  const [speaker, setSpeaker] = useState({ label: 'default', volume: 1 });
+  const [microphone, setMicrophone] = useState({ label: 'default' });
 
   useEffect(() => {
-    listDevices();
+    const loadDevices = async () => {
+      await listDevices();
+
+      setHeadphone({ ...headphone, ...state.devices?.headphone });
+      setSpeaker({ ...speaker, ...state.devices?.speaker });
+      setMicrophone({ ...microphone, ...state.devices?.microphone });
+    };
+
+    loadDevices();
   }, []);
 
   const listDevices = async () => {
@@ -30,10 +41,12 @@ const Configurations = ({ history }) => {
     setDevices({ audioInputs, audioOutputs });
   };
 
-  const saveConfigurations = () => {
+  const saveDevicesConfig = () => {
     localStorage.setItem('speaker', JSON.stringify(speaker));
     localStorage.setItem('headphone', JSON.stringify(headphone));
-    localStorage.setItem('microphone', microphone);
+    localStorage.setItem('microphone', JSON.stringify(microphone));
+
+    dispatch(saveDevices({ speaker, headphone, microphone }));
 
     dispatch(
       addNotification({
@@ -50,7 +63,7 @@ const Configurations = ({ history }) => {
       device => device.label === value,
     );
 
-    setHeadphone({ ...headphone, id: deviceId });
+    setHeadphone({ ...headphone, deviceId, label: value });
   };
 
   const handleCallVolume = event => {
@@ -65,7 +78,7 @@ const Configurations = ({ history }) => {
       device => device.label === value,
     );
 
-    setSpeaker({ ...speaker, id: deviceId });
+    setSpeaker({ ...speaker, deviceId, label: value });
   };
 
   const handleNotificationsVolume = event => {
@@ -78,56 +91,69 @@ const Configurations = ({ history }) => {
 
     const [{ deviceId = 'default' }] = devices.audioInputs.filter(device => device.label === value);
 
-    setMicrophone(deviceId);
+    setMicrophone({ deviceId, label: value });
   };
 
   return (
     <>
-      <Header title="Configurações" />
+      <Header title="Dispositivos" />
+      <Menu />
 
-      <Container>
-        <Devices>
+      <Container onClick={() => dispatch(toggleMenu(false))}>
+        <ListDevices>
           <label>Dispositivo de som:</label>
-          <select name="audioOutput" onChange={handleSelectHeadphone}>
+          <select value={headphone?.label} name="audioOutput" onChange={handleSelectHeadphone}>
             {devices?.audioOutputs?.map(device => (
-              <option key={device.deviceId} value={device.id}>
+              <option key={device.deviceId} value={device.label}>
                 {device.label}
               </option>
             ))}
           </select>
 
           <label> Volume da chamada: </label>
-          <input type="range" min="0" max="1" step="0.01" onChange={handleCallVolume} />
+          <input
+            value={headphone?.volume}
+            type="range"
+            max="1"
+            step="0.01"
+            onChange={handleCallVolume}
+          />
 
           <label>Dispositivo de notificação:</label>
-          <select name="audioOutput" onChange={handleSelectSpeaker}>
+          <select value={speaker?.label} name="audioOutput" onChange={handleSelectSpeaker}>
             {devices?.audioOutputs?.map(device => (
-              <option key={device.label} value={device.id}>
+              <option key={device.deviceId} value={device.label}>
                 {device.label}
               </option>
             ))}
           </select>
 
           <label> Volume da notificação: </label>
-          <input type="range" min="0" max="1" step="0.01" onChange={handleNotificationsVolume} />
+          <input
+            value={speaker?.volume}
+            type="range"
+            max="1"
+            step="0.01"
+            onChange={handleNotificationsVolume}
+          />
 
           <label>Microfone:</label>
-          <select name="audioOutput" onChange={handleSelectMicrophone}>
+          <select value={microphone?.label} name="audioOutput" onChange={handleSelectMicrophone}>
             {devices?.audioInputs?.map(device => (
-              <option key={device.label} value={device.id}>
+              <option key={device.deviceId} value={device.label}>
                 {device.label}
               </option>
             ))}
           </select>
-        </Devices>
+        </ListDevices>
 
         <Controls>
-          <button onClick={() => history.goBack()}>Voltar</button>
-          <button onClick={saveConfigurations}>Salvar</button>
+          <button onClick={() => history.push('/')}>Voltar</button>
+          <button onClick={saveDevicesConfig}>Salvar</button>
         </Controls>
       </Container>
     </>
   );
 };
 
-export default Configurations;
+export default Devices;

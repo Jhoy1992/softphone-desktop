@@ -6,10 +6,11 @@ import { Container } from './styles';
 
 const Notifications = () => {
   const { state } = useContext(store);
+  const { notifications = [] } = state;
 
   return (
     <Container>
-      {state.map(notification => (
+      {notifications.map(notification => (
         <Toast key={notification.id} data={notification} />
       ))}
     </Container>

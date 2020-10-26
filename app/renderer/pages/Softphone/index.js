@@ -1,8 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import * as JsSIP from 'jssip';
-
-import useRefferedState from '../../hooks/useReferredState';
-import PlayTone from '../../utils/tones';
 import {
   FaMicrophone,
   FaMicrophoneSlash,
@@ -12,7 +9,15 @@ import {
   FaPhoneAlt,
 } from 'react-icons/fa';
 
+import { store } from '../../store';
+import { toggleMenu } from '../../actions/menuActions';
+import { addNotification } from '../../actions/notificationsActions';
+
+import useRefferedState from '../../hooks/useReferredState';
+import PlayTone from '../../utils/tones';
 import Header from '../../components/Header';
+import Menu from '../../components/Menu';
+
 import {
   Container,
   Display,
@@ -31,10 +36,12 @@ import {
 
 const DIAL_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
 
-const Home = ({ history }) => {
+const Home = ({ history, location }) => {
+  const { dispatch, state } = useContext(store);
+  const { devices } = state;
   const [dialNumbers] = useState(DIAL_KEYS);
   const [callNumber, callNumberRef, setCallNumber] = useRefferedState('');
-  const [phoneStatus, setPhoneStatus] = useState('');
+  const [phoneStatus, phoneStatusRef, setPhoneStatus] = useRefferedState('');
   const [callStatus, setCallStatus] = useState('');
   const [caller, setCaller] = useState({ number: '', name: '' });
   const [callTime, setCallTime] = useState(0);
@@ -46,8 +53,9 @@ const Home = ({ history }) => {
 
   useEffect(() => {
     register();
-
-    console.log(localStorage.getItem('speaker'));
+    setCallSpeaker(devices?.speaker.deviceId);
+    adjustVolumeLevels(devices);
+    callRouteNumber(location.state?.number);
 
     return unregister;
   }, []);
@@ -56,10 +64,16 @@ const Home = ({ history }) => {
     JsSIP.debug.disable();
     document.addEventListener('keydown', getkeys);
 
+    if (!state?.peer.server || !state?.peer.pass || !state?.peer.user) {
+      dispatch(addNotification({ message: 'Preencha os dados do ramal', type: 'info' }));
+      history.push('/user');
+      return;
+    }
+
     const sip = {
-      host: 'wss://localhost/ws',
-      password: 'Native.100',
-      uri: 'sip:100@localhost',
+      host: `wss://${state?.peer.server}/ws`,
+      password: state?.peer.pass,
+      uri: `sip:${state?.peer.user}@${state.peer.server}`,
     };
 
     const socket = new JsSIP.WebSocketInterface(sip.host);
@@ -74,7 +88,7 @@ const Home = ({ history }) => {
 
     newPhone.on('connecting', () => setPhoneStatus('Conectando...'));
     newPhone.on('connected', () => setPhoneStatus('Conectado'));
-    newPhone.on('disconnected', () => setPhoneStatus('Disconectado'));
+    newPhone.on('disconnected', () => setPhoneStatus('Desconectado'));
     newPhone.on('registered', () => setPhoneStatus('Registrado'));
     newPhone.on('unregistered', () => setPhoneStatus('Sem registro'));
     newPhone.on('registrationFailed', () => setPhoneStatus('Falha de registro'));
@@ -85,14 +99,33 @@ const Home = ({ history }) => {
   };
 
   const unregister = () => {
-    // document.removeEventListener('keydown');
+    document.removeEventListener('keydown', getkeys);
 
-    if (!phone) {
+    if (!phoneRef.current) {
       return;
     }
 
-    clearSession();
-    phone.unregister();
+    clearSession(sessionRef.current);
+
+    phoneRef.current.stop();
+    phoneRef.current.removeAllListeners();
+    phoneRef.current.unregister();
+
+    setPhone(null);
+  };
+
+  const callRouteNumber = number => {
+    if (!number) {
+      return;
+    }
+
+    setCallNumber(location.state.number);
+
+    setTimeout(() => {
+      if (phoneStatusRef.current === 'Registrado') {
+        answerOrCall(location.state?.number);
+      }
+    }, 500);
   };
 
   const handleNewSession = newSession => {
@@ -129,7 +162,7 @@ const Home = ({ history }) => {
     }
 
     if (stream.getAudioTracks()[0]) {
-      setCallHeadphone('default');
+      setCallHeadphone(devices?.headphone?.deviceId);
       remoteAudio.current.srcObject = stream;
       remoteAudio.current.play();
     }
@@ -174,7 +207,7 @@ const Home = ({ history }) => {
   };
 
   const stopCallTimer = session => {
-    if (!session.callTimer) {
+    if (!session?.callTimer) {
       return;
     }
 
@@ -207,6 +240,7 @@ const Home = ({ history }) => {
     setRingtone('assets/ring01.mp3');
 
     ringAudio.current.loop = true;
+    ringAudio.current.volume = devices?.speaker?.volume || 1;
     ringAudio.current.load();
     ringAudio.current.play();
   };
@@ -229,13 +263,17 @@ const Home = ({ history }) => {
 
     const [frequency1, frequency2] = tones[DIAL_KEYS.indexOf(key)];
 
-    PlayTone(frequency1, frequency2);
+    PlayTone(frequency1, frequency2, devices?.speaker?.volume);
   };
 
-  const answerOrCall = () => {
+  const answerOrCall = callNumber => {
     const callOptions = {
       mediaConstraints: {
-        audio: true,
+        audio: {
+          deviceId: {
+            exact: devices?.microphone?.deviceId || 'default',
+          },
+        },
         video: false,
         pcConfig: {
           iceServers: [{ urls: ['stun:stun.l.google.com:19302'] }],
@@ -265,7 +303,11 @@ const Home = ({ history }) => {
       }
     }
 
-    const newSession = phoneRef.current.call(`sip:${callNumberRef.current}@localhost`, callOptions);
+    const newSession = phoneRef.current.call(
+      `sip:${callNumber || callNumberRef.current}@localhost`,
+      callOptions,
+    );
+
     addTrack(newSession, newSession.connection);
   };
 
@@ -291,15 +333,27 @@ const Home = ({ history }) => {
     }
   };
 
-  const setCallHeadphone = ({ headphone = 'default' }) => {
-    if (headphone) {
-      remoteAudio.current.setSinkId(headphone);
-    }
+  const setCallHeadphone = (headphone = 'default') => {
+    remoteAudio.current.setSinkId(headphone);
   };
 
-  const setCallSpeaker = ({ speaker = 'default' }) => {
-    if (speaker) {
-      ringAudio.current.setSinkId(speaker);
+  const setCallSpeaker = (speaker = 'default') => {
+    ringAudio.current.setSinkId(speaker);
+  };
+
+  const adjustVolumeLevels = devices => {
+    if (!devices) {
+      return;
+    }
+
+    const { speaker, headphone } = devices;
+
+    if (speaker?.volume) {
+      ringAudio.current.volume = speaker?.volume;
+    }
+
+    if (headphone?.volume) {
+      remoteAudio.current.volume = headphone?.volume;
     }
   };
 
@@ -352,7 +406,9 @@ const Home = ({ history }) => {
   return (
     <>
       <Header />
-      <Container>
+      <Menu />
+
+      <Container onClick={() => dispatch(toggleMenu(false))}>
         <Display>
           {session && (
             <Duration>
@@ -400,22 +456,23 @@ const Home = ({ history }) => {
           </Microphone>
 
           {session ? (
-            <HangupButton>
-              <FaPhoneSlash color="#dc3545" size={30} onClick={() => clearSession(session)} />
+            <HangupButton onClick={() => clearSession(session)}>
+              <FaPhoneSlash color="#dc3545" size={30} />
             </HangupButton>
           ) : (
-            <Erase>
-              <FaBackspace size={30} onClick={() => padClick(null, 8)} />
+            <Erase onClick={() => padClick(null, 8)}>
+              <FaBackspace size={30} />
             </Erase>
           )}
 
           <AnswerButton
+            onClick={answerOrCall}
             disabled={
               !phone?.isRegistered() ||
               session?.isEstablished() ||
               (session?.isInProgress() && session?.direction !== 'incoming')
             }>
-            <FaPhone color="#389400" onClick={answerOrCall} />
+            <FaPhone color="#389400" />
           </AnswerButton>
         </DialPad>
 

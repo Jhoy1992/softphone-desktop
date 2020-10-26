@@ -29,7 +29,7 @@ const Toast = ({ data }) => {
       icon: <AiFillWarning size={20} />,
       color: '#ffb300',
     },
-    alert: {
+    error: {
       title: 'Erro',
       icon: <AiFillExclamationCircle size={20} />,
       color: '#d9534f',
