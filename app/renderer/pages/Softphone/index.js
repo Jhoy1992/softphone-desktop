@@ -16,6 +16,8 @@ import { addNotification } from '../../actions/notificationsActions';
 
 import useRefferedState from '../../hooks/useReferredState';
 import PlayTone from '../../utils/tones';
+import secondsToHms from '../../utils/secondsToHms';
+
 import Header from '../../components/Header';
 import Menu from '../../components/Menu';
 
@@ -49,6 +51,7 @@ const Home = ({ history, location }) => {
   const [phone, phoneRef, setPhone] = useRefferedState(null);
   const [session, sessionRef, setSession] = useRefferedState(null);
   const [ringtone, setRingtone] = useState('');
+  const [notification, notificationRef, setNotification] = useRefferedState(null);
   const ringAudio = useRef(new Audio());
   const remoteAudio = useRef(new Audio());
 
@@ -221,6 +224,11 @@ const Home = ({ history, location }) => {
   };
 
   const clearSession = session => {
+    if (notificationRef.current) {
+      notificationRef.current.close();
+      setNotification(null);
+    }
+
     if (session?.isEstablished() || session?.isInProgress()) {
       session.terminate();
     }
@@ -401,14 +409,13 @@ const Home = ({ history, location }) => {
     setCallNumber(callNumberRef.current + event.key);
   };
 
-  const secondsToHms = seconds => {
-    const days = Math.floor(seconds / 86400);
-    const remainderSeconds = seconds % 86400;
-    const hms = new Date(remainderSeconds * 1000).toISOString().substring(11, 19);
-    return hms.replace(/^(\d+)/, h => `${Number(h) + days * 24}`.padStart(2, '0'));
-  };
-
   const showCallNotification = (title, message) => {
+    const currentWindow = remote.getCurrentWindow();
+
+    if (currentWindow.isFocused()) {
+      return;
+    }
+
     const newNotification = new remote.Notification({
       title,
       body: message,
@@ -421,6 +428,7 @@ const Home = ({ history, location }) => {
     });
 
     newNotification.show();
+    setNotification(newNotification);
   };
 
   return (

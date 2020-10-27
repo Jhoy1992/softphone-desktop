@@ -2,8 +2,9 @@ import React, { useContext } from 'react';
 import { useHistory } from 'react-router-dom';
 import { remote } from 'electron';
 import { FiUser, FiHeadphones, FiPhone } from 'react-icons/fi';
-import { AiOutlineClose, AiOutlineHistory } from 'react-icons/ai';
+import { AiOutlineClose } from 'react-icons/ai';
 import { GrHistory } from 'react-icons/gr';
+import { FaRegAddressCard } from 'react-icons/fa';
 
 import { store } from '../../store';
 import { toggleMenu } from '../../actions/menuActions';
@@ -36,6 +37,9 @@ const Menu = () => {
           </Item>
           <Item onClick={() => handleNavigate('/history')}>
             <GrHistory /> Histórico
+          </Item>
+          <Item onClick={() => handleNavigate('/phoneBook')}>
+            <FaRegAddressCard /> Agenda
           </Item>
           <Item onClick={() => handleNavigate('/user')}>
             <FiUser /> Usuário

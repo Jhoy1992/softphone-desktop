@@ -25,7 +25,7 @@ const Toast = ({ data }) => {
 
   const types = {
     warning: {
-      title: 'Alerta',
+      title: 'Aviso',
       icon: <AiFillWarning size={20} />,
       color: '#ffb300',
     },
@@ -40,7 +40,7 @@ const Toast = ({ data }) => {
       color: '#5cb85c',
     },
     info: {
-      title: 'Aviso',
+      title: 'Informação',
       icon: <AiFillInfoCircle size={20} />,
       color: '#007bff',
     },

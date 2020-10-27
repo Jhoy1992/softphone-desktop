@@ -7,33 +7,13 @@ export const Container = styled.div`
   line-height: 1rem;
 `;
 
-export const Loading = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 30vh;
-`;
-
-export const Calls = styled.div`
+export const Contacts = styled.div`
   display: flex;
   flex-direction: column;
   margin-bottom: 10px;
   overflow-y: auto;
   max-height: 73vh;
   font-size: 13px;
-
-  p {
-    color: #007bff;
-    text-align: center;
-    font-size: 12px;
-    cursor: pointer;
-    margin-top: 5px;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
 
   &::-webkit-scrollbar {
     width: 4px !important;
@@ -49,7 +29,7 @@ export const Calls = styled.div`
   }
 `;
 
-export const Call = styled.div`
+export const Contact = styled.div`
   display: flex;
   flex-direction: column;
   border: 1px solid #ccc;
@@ -69,23 +49,32 @@ export const Call = styled.div`
   div {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
     align-items: center;
 
-    span {
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
 
     svg:first-child {
       margin-right: 3px;
     }
   }
 
-  div:last-child {
-    margin-top: 3px;
+  div:first-child {
+    justify-content: space-between;
+
+    div:first-child {
+      color: #dc3545;
+    }
   }
+`;
+
+export const Loading = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 30vh;
 `;
 
 export const Controls = styled.div`

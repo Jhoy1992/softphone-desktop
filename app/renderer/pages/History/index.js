@@ -11,9 +11,10 @@ import { toggleMenu } from '../../actions/menuActions';
 
 import Header from '../../components/Header';
 import Menu from '../../components/Menu';
+import Search from '../../components/Search';
 
 import formatDateTime from '../../utils/formatDateTime';
-import { Container, Search, Loading, Calls, Call, Controls } from './styles';
+import { Container, Loading, Calls, Call, Controls } from './styles';
 
 const status = {
   OUT: <FiPhoneOutgoing color="#007bff" size={12} />,
@@ -96,6 +97,10 @@ const History = ({ history }) => {
         },
       });
 
+      if (page > 1 && !newCalls.length) {
+        dispatch(addNotification({ message: 'Todos os dados já foram carregados', type: 'info' }));
+      }
+
       replace ? setCalls(newCalls) : setCalls([...calls, ...newCalls]);
       setPage(page);
       setLoading(false);
@@ -144,15 +149,7 @@ const History = ({ history }) => {
       <Header title="Histórico" />
       <Menu />
       <Container onClick={() => dispatch(toggleMenu(false))}>
-        <Search>
-          <input
-            value={searchTerm}
-            onChange={event => setSearchTerm(event.target.value)}
-            type="text"
-            placeholder="Pesquisar..."
-          />
-          <FiSearch size={26} />
-        </Search>
+        <Search value={searchTerm} onChange={event => setSearchTerm(event.target.value)} />
 
         {loading ? (
           <Loading>
