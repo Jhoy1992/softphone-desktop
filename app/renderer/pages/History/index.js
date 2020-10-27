@@ -46,17 +46,17 @@ const History = ({ history }) => {
 
       setLoading(true);
 
-      const { data } = await api.post(`${state.user.api}/token`, {
+      const { data } = await api.post(`https://${state.user.api}/api/token`, {
         username: state.user.user,
         password: state.user.pass,
       });
 
       api.defaults.headers['Authorization'] = `Bearer ${data.token}`;
 
-      const { data: newCalls } = await api.get(`${state.user.api}/historyCalls`, {
+      const { data: newCalls } = await api.get(`https://${state.user.api}/api/historyCalls`, {
         params: {
           peerId: data.user.Peer.id,
-          limit: 100,
+          limit: 50,
           $or: {
             name: [{ $like: `%${debouncedSearchTerm}%` }],
             phone: [{ $like: `%${debouncedSearchTerm}%` }],
@@ -81,14 +81,14 @@ const History = ({ history }) => {
     setLoading(true);
 
     try {
-      const { data } = await api.post(`${state.user.api}/token`, {
+      const { data } = await api.post(`https://${state.user.api}/api/token`, {
         username: state.user.user,
         password: state.user.pass,
       });
 
       api.defaults.headers['Authorization'] = `Bearer ${data.token}`;
 
-      const { data: newCalls } = await api.get(`${state.user.api}/historyCalls`, {
+      const { data: newCalls } = await api.get(`https://${state.user.api}/api/historyCalls`, {
         params: {
           peerId: data.user.Peer.id,
           limit: 20,
@@ -186,9 +186,11 @@ const History = ({ history }) => {
                 </Call>
               ))}
 
-              <p ref={callsEndRef} onClick={() => loadHistory(page + 1)}>
-                Carregar mais antigos...
-              </p>
+              {!debouncedSearchTerm && (
+                <p ref={callsEndRef} onClick={() => loadHistory(page + 1)}>
+                  Carregar mais antigos...
+                </p>
+              )}
             </Calls>
           </>
         )}

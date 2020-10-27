@@ -42,7 +42,7 @@ const User = ({ history }) => {
     setLoading(true);
 
     try {
-      const { data } = await api.post(`${user.api}/token`, {
+      const { data } = await api.post(`https://${user.api}/api/token`, {
         username: user.user,
         password: user.pass,
       });
@@ -57,8 +57,6 @@ const User = ({ history }) => {
       dispatch(addNotification({ message: 'Erro ao buscar informações do ramal', type: 'error' }));
       setLoading(false);
     }
-
-    // axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   };
 
   const handleChangeUserUsername = event => {
@@ -105,7 +103,7 @@ const User = ({ history }) => {
               value={user.api}
               onChange={handleChangeUserApi}
               type="text"
-              placeholder="https://localhost/api"
+              placeholder="localhost"
             />
 
             <div>

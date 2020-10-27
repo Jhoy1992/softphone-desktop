@@ -6,7 +6,7 @@ export const Container = styled.div`
 
   background-color: #323336;
   color: #fff;
-  height: 28px;
+  height: 34px;
   align-items: center;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -15,6 +15,7 @@ export const Container = styled.div`
   div {
     display: flex;
     justify-content: center;
+    align-items: center;
   }
 
   div:first-child {
@@ -23,10 +24,6 @@ export const Container = styled.div`
 
   div:last-child {
     justify-content: flex-end;
-  }
-
-  img {
-    margin-bottom: 1px;
   }
 
   svg {

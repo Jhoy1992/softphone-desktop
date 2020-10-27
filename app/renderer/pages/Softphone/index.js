@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
+import { remote } from 'electron';
 import * as JsSIP from 'jssip';
 import {
   FaMicrophone,
@@ -178,6 +179,10 @@ const Home = ({ history, location }) => {
 
       if (isIncoming) {
         setCallStatus('Recebendo ligação...');
+        showCallNotification(
+          'Nova ligação',
+          `Ligação de ${number} <${name}>, clique para atender.`,
+        );
       }
 
       if (!isIncoming) {
@@ -401,6 +406,21 @@ const Home = ({ history, location }) => {
     const remainderSeconds = seconds % 86400;
     const hms = new Date(remainderSeconds * 1000).toISOString().substring(11, 19);
     return hms.replace(/^(\d+)/, h => `${Number(h) + days * 24}`.padStart(2, '0'));
+  };
+
+  const showCallNotification = (title, message) => {
+    const newNotification = new remote.Notification({
+      title,
+      body: message,
+    });
+
+    newNotification.on('click', () => {
+      if (sessionRef?.current?.isInProgress()) {
+        answerOrCall();
+      }
+    });
+
+    newNotification.show();
   };
 
   return (

@@ -27,20 +27,20 @@ const Header = ({ title }) => {
   return (
     <Container>
       <div>
-        <AiOutlineMenu color="#fff" size={18} onClick={handleToggleMenu} />
+        <AiOutlineMenu color="#fff" size={20} onClick={handleToggleMenu} />
       </div>
 
       <div>
         {title ? (
           <h4>{title}</h4>
         ) : (
-          <img src="assets/logo_horizontal.png" alt="Logo native" height={18} />
+          <img src="assets/logo_horizontal.png" alt="Logo native" height={20} />
         )}
       </div>
 
       <div>
-        <AiFillMinusCircle color="#fff" size={18} onClick={minimizeWindow} />
-        <AiFillCloseCircle color="#fff" size={18} onClick={closeWindow} />
+        <AiFillMinusCircle color="#fff" size={20} onClick={minimizeWindow} />
+        <AiFillCloseCircle color="#fff" size={20} onClick={closeWindow} />
       </div>
     </Container>
   );

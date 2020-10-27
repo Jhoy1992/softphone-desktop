@@ -1,23 +1,38 @@
 import path from 'path';
-import { app, BrowserWindow, Menu } from 'electron';
+import { app, BrowserWindow, Menu, Tray } from 'electron';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 let mainWindow = null;
 let forceQuit = false;
 
-const installExtensions = async () => {
-  const installer = require('electron-devtools-installer');
-  const extensions = ['REACT_DEVELOPER_TOOLS', 'REDUX_DEVTOOLS'];
-  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
+const createTray = () => {
+  const appIcon = new Tray(path.join(__dirname, '../renderer/assets/icon.png'));
 
-  for (const name of extensions) {
-    try {
-      await installer.default(installer[name], forceDownload);
-    } catch (e) {
-      console.log(`Error installing ${name} extension: ${e.message}`);
-    }
-  }
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Abrir',
+      click: () => {
+        mainWindow.show();
+      },
+    },
+    {
+      label: 'Sair',
+      click: () => {
+        app.isQuiting = true;
+        app.quit();
+      },
+    },
+  ]);
+
+  appIcon.on('double-click', function (event) {
+    mainWindow.show();
+  });
+
+  appIcon.setToolTip('Infinity Softphone');
+  appIcon.setContextMenu(contextMenu);
+
+  return appIcon;
 };
 
 app.on('window-all-closed', () => {
@@ -27,13 +42,9 @@ app.on('window-all-closed', () => {
 });
 
 app.on('ready', async () => {
-  if (isDevelopment) {
-    await installExtensions();
-  }
-
   mainWindow = new BrowserWindow({
     width: 640,
-    height: 450,
+    height: 455,
     show: false,
     frame: false,
     transparent: true,
@@ -48,6 +59,19 @@ app.on('ready', async () => {
   });
 
   mainWindow.loadFile(path.resolve(path.join(__dirname, '../renderer/index.html')));
+
+  let tray = null;
+  mainWindow.on('minimize', event => {
+    event.preventDefault();
+    mainWindow.setSkipTaskbar(true);
+    tray = createTray();
+  });
+
+  mainWindow.on('restore', event => {
+    mainWindow.show();
+    mainWindow.setSkipTaskbar(false);
+    tray.destroy();
+  });
 
   mainWindow.webContents.once('did-finish-load', () => {
     mainWindow.show();

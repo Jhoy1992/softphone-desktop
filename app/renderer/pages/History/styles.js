@@ -5,7 +5,6 @@ export const Container = styled.div`
   display: flex;
   flex-direction: column;
   line-height: 1rem;
-  min-height: 94vh;
 `;
 
 export const Search = styled.div`
@@ -53,7 +52,7 @@ export const Calls = styled.div`
   flex-direction: column;
   margin-bottom: 10px;
   overflow-y: auto;
-  max-height: 74vh;
+  max-height: 73vh;
   font-size: 13px;
 
   p {
