@@ -48,7 +48,7 @@ const User = ({ history }) => {
       });
 
       const { Peer = {} } = data?.user;
-      const newPeer = { user: Peer?.username, pass: Peer?.secret };
+      const newPeer = { user: Peer?.username, pass: Peer?.secret, server: peer.server || user.api };
       setPeer({ ...peer, ...newPeer });
 
       dispatch(addNotification({ message: 'Informações do ramal carregadas', type: 'success' }));

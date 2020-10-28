@@ -59,13 +59,54 @@ export const PeerInfo = styled.div`
   margin-bottom: 0;
   padding-bottom: 0;
   user-select: none;
+
+  svg {
+    margin-right: 4px;
+  }
+`;
+
+export const Lines = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 10px;
+  color: #6c757d;
+`;
+
+export const Line = styled.div`
+  background-color: ${props => (props.background ? props.background : '#fff')};
+  color: ${props => (props.color ? props.color : '#6c757d')};
+  border: 1px solid ${props => (props.border ? props.border : '#dee2e6')};
+  padding: 2px 5px;
+  margin-right: 5px;
+  border-radius: 3px;
+  width: 100%;
+  text-align: center;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  transition: border 0.2s;
+
+  &:last-child {
+    margin-right: 0;
+  }
+
+  &:hover {
+    border: 1px solid #222;
+    color: #222;
+    opacity: 0.9;
+  }
+
+  svg {
+    margin-right: 4px;
+  }
 `;
 
 export const DialPad = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px 20px;
-  padding: 10px;
+  padding: 10px 10px 0 10px;
 
   div {
     display: flex;
@@ -155,5 +196,25 @@ export const AnswerButton = styled.div`
         opacity: 50%;
         color: #9c9898;
       `}
+  }
+`;
+
+export const Footer = styled.footer`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  line-height: 1;
+  font-size: 11px;
+  color: #444;
+  text-align: center;
+
+  svg {
+    margin-left: 3px;
+  }
+
+  &:hover {
+    color: #007bff;
   }
 `;

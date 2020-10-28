@@ -7,6 +7,6 @@ export const Container = styled.div`
   color: #fff;
   width: 100%;
   transition: transform 0.6s ease-in-out;
-  margin-top: 35px;
+  margin-top: 40px;
   padding: 0 5px;
 `;

@@ -12,7 +12,7 @@ export const Contacts = styled.div`
   flex-direction: column;
   margin-bottom: 10px;
   overflow-y: auto;
-  max-height: 73vh;
+  max-height: 74vh;
   font-size: 13px;
 
   &::-webkit-scrollbar {
@@ -57,6 +57,10 @@ export const Contact = styled.div`
 
     svg:first-child {
       margin-right: 3px;
+    }
+
+    strong + svg {
+      margin-left: 3px;
     }
   }
 

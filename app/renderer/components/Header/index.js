@@ -12,7 +12,7 @@ const Header = ({ title }) => {
 
   const closeWindow = () => {
     const currentWindow = remote.getCurrentWindow();
-    currentWindow.close();
+    currentWindow.minimize();
   };
 
   const minimizeWindow = () => {

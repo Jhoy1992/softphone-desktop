@@ -1,13 +1,14 @@
 import path from 'path';
-import { app, BrowserWindow, Menu, Tray } from 'electron';
+import { app, BrowserWindow, Menu, Tray, nativeImage } from 'electron';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
+const icon = nativeImage.createFromPath(path.join(__dirname, '../renderer/assets/icon.png'));
 
 let mainWindow = null;
 let forceQuit = false;
 
 const createTray = () => {
-  const appIcon = new Tray(path.join(__dirname, '../renderer/assets/icon.png'));
+  const appIcon = new Tray(icon);
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -35,6 +36,8 @@ const createTray = () => {
   return appIcon;
 };
 
+app.disableHardwareAcceleration();
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -43,15 +46,16 @@ app.on('window-all-closed', () => {
 
 app.on('ready', async () => {
   mainWindow = new BrowserWindow({
-    width: 640,
-    height: 455,
+    width: isDevelopment ? 640 : 250,
+    // width: 640,
+    height: 490,
     show: false,
     frame: false,
-    transparent: true,
     resizable: false,
-    icon: path.join(__dirname, '../renderer/assets/icon.png'),
+    icon,
     // alwaysOnTop: true,
     webPreferences: {
+      devTools: isDevelopment ? true : false,
       nodeIntegration: true,
       enableRemoteModule: true,
       // preload: path.join(__dirname, 'preload.js'),

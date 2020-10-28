@@ -1,6 +1,6 @@
-appId: com.example.app
-copyright: Example co
-productName: MyApp
+appId: com.native.app
+copyright: Copyright © 2020 Native IP Ltda.
+productName: Infinity Softphone
 
 asar: true
 
@@ -26,12 +26,13 @@ dmg:
 
 mac:
   target: dmg
-  category: public.app-category.tools
+  category: public.utilities.tools
 
 win:
   target: nsis
 
 linux:
+  category: public.utilities.tools
   target:
     - deb
     - AppImage

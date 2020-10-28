@@ -20,7 +20,7 @@ export const Calls = styled.div`
   flex-direction: column;
   margin-bottom: 10px;
   overflow-y: auto;
-  max-height: 73vh;
+  max-height: 74vh;
   font-size: 13px;
 
   p {

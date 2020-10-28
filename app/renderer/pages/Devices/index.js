@@ -54,6 +54,8 @@ const Devices = ({ history }) => {
         type: 'success',
       }),
     );
+
+    history.push('/');
   };
 
   const handleSelectHeadphone = event => {

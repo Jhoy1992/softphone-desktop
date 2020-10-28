@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from 'react';
 import { remote } from 'electron';
 import * as JsSIP from 'jssip';
 import {
@@ -9,12 +9,14 @@ import {
   FaPhoneSlash,
   FaPhoneAlt,
 } from 'react-icons/fa';
+import { BiWorld } from 'react-icons/bi';
 
 import { store } from '../../store';
 import { toggleMenu } from '../../actions/menuActions';
 import { addNotification } from '../../actions/notificationsActions';
+import { toggleTooltip } from '../../actions/tooltipActions';
 
-import useRefferedState from '../../hooks/useReferredState';
+import useRefState from '../../hooks/useReferredState';
 import PlayTone from '../../utils/tones';
 import secondsToHms from '../../utils/secondsToHms';
 
@@ -30,35 +32,48 @@ import {
   CallNumber,
   CallerInfo,
   PeerInfo,
+  Lines,
+  Line,
   DialNumber,
   Microphone,
   Erase,
   AnswerButton,
   HangupButton,
+  Footer,
 } from './styles';
 
 const DIAL_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
+const INITIAL_DATA = {
+  callNumber: '',
+  callStatus: '',
+  caller: { number: '', name: '' },
+  session: null,
+  callTime: 0,
+};
 
 const Home = ({ history, location }) => {
   const { dispatch, state } = useContext(store);
   const { devices } = state;
   const [dialNumbers] = useState(DIAL_KEYS);
-  const [callNumber, callNumberRef, setCallNumber] = useRefferedState('');
-  const [phoneStatus, phoneStatusRef, setPhoneStatus] = useRefferedState('');
-  const [callStatus, setCallStatus] = useState('');
-  const [caller, setCaller] = useState({ number: '', name: '' });
-  const [callTime, setCallTime] = useState(0);
-  const [phone, phoneRef, setPhone] = useRefferedState(null);
-  const [session, sessionRef, setSession] = useRefferedState(null);
+  const [phoneStatus, phoneStatusRef, setPhoneStatus] = useRefState('');
+  const [phone, phoneRef, setPhone] = useRefState(null);
   const [ringtone, setRingtone] = useState('');
-  const [notification, notificationRef, setNotification] = useRefferedState(null);
   const ringAudio = useRef(new Audio());
   const remoteAudio = useRef(new Audio());
+  const [currentLine, currentLineRef, setCurrentLine] = useRefState(0);
+  const [lines, linesRef, setLines] = useRefState([
+    { ...INITIAL_DATA },
+    { ...INITIAL_DATA },
+    { ...INITIAL_DATA },
+    { ...INITIAL_DATA },
+  ]);
 
   useEffect(() => {
     register();
     setCallSpeaker(devices?.speaker.deviceId);
     adjustVolumeLevels(devices);
+    changeLine(currentLine);
+
     callRouteNumber(location.state?.number);
 
     return unregister;
@@ -109,7 +124,7 @@ const Home = ({ history, location }) => {
       return;
     }
 
-    clearSession(sessionRef.current);
+    linesRef.current.forEach((line, index) => clearSession(index, line.session));
 
     phoneRef.current.stop();
     phoneRef.current.removeAllListeners();
@@ -123,38 +138,51 @@ const Home = ({ history, location }) => {
       return;
     }
 
-    setCallNumber(location.state.number);
+    setCallNumber(currentLineRef.current, location.state.number);
 
     setTimeout(() => {
       if (phoneStatusRef.current === 'Registrado') {
-        answerOrCall(location.state?.number);
+        answerOrCall(currentLineRef.current, location.state?.number);
       }
     }, 500);
   };
 
   const handleNewSession = newSession => {
     const isIncoming = newSession.direction === 'incoming';
+    const lineIndex = getAvailableLine(isIncoming);
 
     if (isIncoming) {
       playRingtone();
     }
 
-    newSession.on('ended', () => clearSession(newSession));
-    newSession.on('failed', () => clearSession(newSession));
-    newSession.on('accepted', () => updateUI(newSession));
-    newSession.on('confirmed', () => updateUI(newSession));
+    newSession.on('ended', () => clearSession(lineIndex, newSession));
+    newSession.on('failed', () => clearSession(lineIndex, newSession));
+    newSession.on('accepted', () => updateUI(lineIndex, newSession));
+    newSession.on('confirmed', () => updateUI(lineIndex, newSession));
 
     newSession.on('peerconnection', peer => {
-      addTrack(newSession, peer.peerconnection);
+      addTrack(lineIndex, newSession, peer.peerconnection);
     });
 
-    updateUI(newSession);
-    setSession(newSession);
+    updateUI(lineIndex, newSession);
+    setSession(lineIndex, newSession);
   };
 
-  const addTrack = (session, connection) => {
+  const getAvailableLine = isIncoming => {
+    if (!isIncoming || !linesRef.current[currentLineRef.current].session) {
+      return currentLineRef.current;
+    }
+
+    for (const [index, line] of linesRef.current.entries()) {
+      if (!line.session) {
+        return index;
+      }
+    }
+  };
+
+  const addTrack = (lineIndex, session, connection) => {
     connection.ontrack = event => {
-      session.stream = event.streams[0];
+      linesRef.current[lineIndex].session.stream = event.streams[0];
 
       setTrack(session.stream);
     };
@@ -172,61 +200,66 @@ const Home = ({ history, location }) => {
     }
   };
 
-  const updateUI = session => {
+  const updateUI = (lineIndex, session) => {
     if (session.isInProgress()) {
       const number = session.remote_identity.uri.user;
       const name = session.remote_identity.display_name;
       const isIncoming = session.direction === 'incoming';
 
-      setCaller({ ...caller, number, name });
+      setCaller(lineIndex, { number, name });
 
       if (isIncoming) {
-        setCallStatus('Recebendo ligação...');
+        setCallStatus(lineIndex, 'Recebendo ligação...');
+
         showCallNotification(
+          lineIndex,
           'Nova ligação',
           `Ligação de ${number} <${name}>, clique para atender.`,
         );
       }
 
       if (!isIncoming) {
-        setCallStatus('Discando...');
+        setCallStatus(lineIndex, 'Discando...');
       }
     }
 
     if (session.isEstablished()) {
-      setCallStatus('Em ligação...');
-      startCallTimer(session);
+      setCallStatus(lineIndex, 'Em ligação...');
+      startCallTimer(lineIndex);
 
       ringAudio.current.pause();
     }
   };
 
-  const startCallTimer = session => {
-    if (session.callTimer) {
+  const startCallTimer = lineIndex => {
+    const line = getLineByIndex(lineIndex);
+
+    if (line.callTimer) {
       return;
     }
 
-    session.callTime = 0;
-
-    session.callTimer = setInterval(() => {
-      session.callTime += 1;
-      setCallTime(session.callTime);
-    }, 1000);
+    setCallTime(lineIndex, 0);
+    setCallTimer(
+      lineIndex,
+      setInterval(() => setCallTime(lineIndex, line.callTime + 1), 1000),
+    );
   };
 
-  const stopCallTimer = session => {
-    if (!session?.callTimer) {
+  const stopCallTimer = lineIndex => {
+    const line = getLineByIndex(lineIndex);
+
+    if (line.callTimer) {
       return;
     }
 
-    clearInterval(session.callTimer);
-    setCallTime(0);
+    clearInterval(line.callTimer);
+    setCallTime(lineIndex, 0);
   };
 
-  const clearSession = session => {
-    if (notificationRef.current) {
-      notificationRef.current.close();
-      setNotification(null);
+  const clearSession = (lineIndex, session) => {
+    if (linesRef.current[lineIndex].notification) {
+      linesRef.current[lineIndex].notification.close();
+      setNotification(lineIndex, null);
     }
 
     if (session?.isEstablished() || session?.isInProgress()) {
@@ -242,11 +275,11 @@ const Home = ({ history, location }) => {
       remoteAudio.current.srcObject = null;
     }
 
-    stopCallTimer(session);
-    setCallStatus('');
-    setCaller({ number: '', name: '' });
-    setCallTime(0);
-    setSession(null);
+    stopCallTimer(lineIndex);
+    setCallStatus(lineIndex, '');
+    setCaller(lineIndex, { number: '', name: '' });
+    setCallTime(lineIndex, 0);
+    setSession(lineIndex, null);
   };
 
   const playRingtone = () => {
@@ -279,7 +312,9 @@ const Home = ({ history, location }) => {
     PlayTone(frequency1, frequency2, devices?.speaker?.volume);
   };
 
-  const answerOrCall = callNumber => {
+  const answerOrCall = (lineIndex, callNumber) => {
+    const line = getLineByIndex(lineIndex);
+
     const callOptions = {
       mediaConstraints: {
         audio: {
@@ -298,51 +333,61 @@ const Home = ({ history, location }) => {
       return;
     }
 
-    if (sessionRef.current?.isEstablished()) {
-      clearSession(sessionRef.current);
+    if (line.session?.isEstablished()) {
+      clearSession(line.session);
       return;
     }
 
-    if (sessionRef.current?.isInProgress()) {
-      if (sessionRef.current?.direction === 'outgoing') {
-        clearSession(sessionRef.current);
+    if (line.session?.isInProgress()) {
+      if (line.session?.direction === 'outgoing') {
+        clearSession(line.session);
         return;
       }
 
-      if (sessionRef.current?.isInProgress()) {
-        sessionRef.current.answer(callOptions);
+      if (line.session?.isInProgress()) {
+        line.session.answer(callOptions);
 
         return;
       }
+    }
+
+    if (!line.callNumber?.length) {
+      return;
     }
 
     const newSession = phoneRef.current.call(
-      `sip:${callNumber || callNumberRef.current}@localhost`,
+      `sip:${callNumber || linesRef.current[lineIndex].callNumber}@localhost`,
       callOptions,
     );
 
-    addTrack(newSession, newSession.connection);
+    addTrack(lineIndex, newSession, newSession.connection);
   };
 
-  const mute = () => {
-    if (!sessionRef.current?.isEstablished()) return;
+  const mute = lineIndex => {
+    const line = getLineByIndex(lineIndex);
 
-    if (sessionRef.current.isMuted().audio) {
-      sessionRef.current.unmute({ audio: true });
-    } else {
-      sessionRef.current.mute({ audio: true });
-    }
-  };
-
-  const hold = () => {
-    if (!sessionRef.current || !sessionRef.current.isEstablished()) {
+    if (!line.session?.isEstablished()) {
       return;
     }
 
-    if (!sessionRef.current.isOnHold().local) {
-      sessionRef.current.hold();
+    if (line.session.isMuted().audio) {
+      line.session.unmute({ audio: true });
     } else {
-      sessionRef.current.unhold();
+      line.session.mute({ audio: true });
+    }
+  };
+
+  const toogleHold = lineIndex => {
+    const line = getLineByIndex(lineIndex);
+
+    if (!line.session?.isEstablished()) {
+      return;
+    }
+
+    if (!line.session?.isOnHold().local) {
+      line.session?.hold();
+    } else {
+      line.session?.unhold();
     }
   };
 
@@ -376,18 +421,21 @@ const Home = ({ history, location }) => {
   };
 
   const getkeys = event => {
+    const lineIndex = currentLineRef.current;
+    const line = getLineByIndex(lineIndex);
+
     if (event.key === 'm') {
-      mute();
+      mute(lineIndex);
       return;
     }
 
     if (event.keyCode === 13) {
-      answerOrCall();
+      answerOrCall(lineIndex);
       return;
     }
 
     if (event.keyCode === 8) {
-      setCallNumber(callNumberRef.current.slice(0, -1));
+      setCallNumber(lineIndex, line.callNumber.slice(0, -1));
       return;
     }
 
@@ -399,17 +447,17 @@ const Home = ({ history, location }) => {
       playTone(event.key);
     }
 
-    if (session?.isEstablished()) {
-      session.sendDTMF(event.key);
+    if (line.session?.isEstablished()) {
+      line.session.sendDTMF(event.key);
       return;
     }
 
-    if (callNumberRef.current.length >= 16) return;
+    if (line.callNumber.length >= 16) return;
 
-    setCallNumber(callNumberRef.current + event.key);
+    setCallNumber(lineIndex, line.callNumber + event.key);
   };
 
-  const showCallNotification = (title, message) => {
+  const showCallNotification = (lineIndex, title, message) => {
     const currentWindow = remote.getCurrentWindow();
 
     if (currentWindow.isFocused()) {
@@ -422,13 +470,104 @@ const Home = ({ history, location }) => {
     });
 
     newNotification.on('click', () => {
-      if (sessionRef?.current?.isInProgress()) {
-        answerOrCall();
+      if (linesRef.current[lineIndex].session?.isInProgress()) {
+        answerOrCall(lineIndex);
       }
     });
 
     newNotification.show();
-    setNotification(newNotification);
+    setNotification(lineIndex, newNotification);
+  };
+
+  const changeLine = lineIndex => {
+    if (currentLineRef.current === lineIndex) {
+      return;
+    }
+
+    toogleHold(currentLineRef.current);
+    toogleHold(lineIndex);
+
+    setCurrentLine(lineIndex);
+  };
+
+  const getLineByIndex = lineIndex => {
+    return linesRef.current[lineIndex];
+  };
+
+  const getLineStatus = lineIndex => {
+    const line = getLineByIndex(lineIndex);
+
+    if (line.session?.isInProgress()) {
+      return { color: '#fff', background: '#ffb300', border: '#ffb300' };
+    }
+
+    if (line.session?.isOnHold().local) {
+      return { color: '#fff', background: '#fa6a4d', border: '#fa6a4d' };
+    }
+
+    if (line.session?.isEstablished()) {
+      return { color: '#fff', background: '#5cb85c', border: '#5cb85c' };
+    }
+
+    if (lineIndex === currentLineRef.current) {
+      return { color: '#fff', background: '#6c757d', border: '#6c757d' };
+    }
+
+    return { color: '#6c757d', background: '#fff', border: '#dee2e6' };
+  };
+
+  const setCallNumber = (lineIndex, callNumber) => {
+    const newLines = [...lines];
+
+    newLines[lineIndex].callNumber = callNumber;
+    setLines(newLines);
+  };
+
+  const setCaller = (lineIndex, caller) => {
+    const newLines = [...lines];
+
+    newLines[lineIndex].caller = { ...newLines[lineIndex].caller, ...caller };
+    setLines(newLines);
+  };
+
+  const setCallStatus = (lineIndex, status) => {
+    const newLines = [...lines];
+
+    newLines[lineIndex].callStatus = status;
+    setLines(newLines);
+  };
+
+  const setCallTime = (lineIndex, callTime) => {
+    const newLines = [...lines];
+
+    newLines[lineIndex].callTime = callTime;
+    setLines(newLines);
+  };
+
+  const setCallTimer = (lineIndex, timer) => {
+    const newLines = [...lines];
+
+    newLines[lineIndex].callTimer = timer;
+    setLines(newLines);
+  };
+
+  const setSession = (lineIndex, session) => {
+    const newLines = [...lines];
+
+    newLines[lineIndex].session = session;
+    setLines(newLines);
+  };
+
+  const setNotification = (lineIndex, notification) => {
+    const newLines = [...lines];
+
+    newLines[lineIndex].notification = notification;
+    setLines(newLines);
+  };
+
+  const openExternalUrl = event => {
+    event.preventDefault();
+    remote.shell.openExternal('http://www.nativeip.com.br');
   };
 
   return (
@@ -438,27 +577,33 @@ const Home = ({ history, location }) => {
 
       <Container onClick={() => dispatch(toggleMenu(false))}>
         <Display>
-          {session && (
+          {lines[currentLine].session && (
             <Duration>
-              {session?.start_time && (
-                <div>Início: {new Date(session.start_time).toLocaleTimeString('pt-BR')}</div>
+              {lines[currentLine].session?.start_time && (
+                <div>
+                  Início:{' '}
+                  {new Date(lines[currentLine].session.start_time).toLocaleTimeString('pt-BR')}
+                </div>
               )}
 
-              {!!callTime && <div>Tempo: {secondsToHms(callTime)}</div>}
+              {!!lines[currentLine].callTime && (
+                <div>Tempo: {secondsToHms(lines[currentLine].callTime)}</div>
+              )}
             </Duration>
           )}
 
           <Divisor />
 
-          {!session && <CallNumber>{callNumber}</CallNumber>}
+          {!lines[currentLine].session && <CallNumber>{lines[currentLine].callNumber}</CallNumber>}
 
-          {session && (
+          {lines[currentLine].session && (
             <CallerInfo>
-              <h3>{callStatus}</h3>
+              <h3>{lines[currentLine].callStatus}</h3>
 
-              {!!caller?.number && (
+              {!!lines[currentLine].caller?.number && (
                 <h1>
-                  {caller.number} {caller?.name && <> - {caller.name}</>}
+                  {lines[currentLine].caller.number}
+                  {lines[currentLine].caller?.name && <> - {lines[currentLine].caller.name}</>}
                 </h1>
               )}
             </CallerInfo>
@@ -466,11 +611,30 @@ const Home = ({ history, location }) => {
 
           <PeerInfo>
             <div>
-              <FaPhoneAlt size={6} /> 100
+              <FaPhoneAlt size={6} />
+              {state?.peer?.user}
             </div>
+
             <div>{phoneStatus}</div>
           </PeerInfo>
         </Display>
+
+        <Lines>
+          {lines.map((line, index) => {
+            const { color, background, border } = getLineStatus(index);
+
+            return (
+              <Line
+                key={index}
+                background={background}
+                color={color}
+                border={border}
+                onClick={() => changeLine(index)}>
+                <FaPhoneAlt size={8} /> {index + 1}
+              </Line>
+            );
+          })}
+        </Lines>
 
         <DialPad>
           {dialNumbers.map(dialNumber => (
@@ -479,12 +643,18 @@ const Home = ({ history, location }) => {
             </DialNumber>
           ))}
 
-          <Microphone disabled={!session?.isEstablished()} onClick={mute}>
-            {session?.isMuted().audio ? <FaMicrophoneSlash size={30} /> : <FaMicrophone />}
+          <Microphone
+            disabled={!lines[currentLine].session?.isEstablished()}
+            onClick={() => mute(currentLine)}>
+            {lines[currentLine].session?.isMuted().audio ? (
+              <FaMicrophoneSlash size={30} />
+            ) : (
+              <FaMicrophone />
+            )}
           </Microphone>
 
-          {session ? (
-            <HangupButton onClick={() => clearSession(session)}>
+          {lines[currentLine].session ? (
+            <HangupButton onClick={() => clearSession(currentLine, lines[currentLine].session)}>
               <FaPhoneSlash color="#dc3545" size={30} />
             </HangupButton>
           ) : (
@@ -494,15 +664,21 @@ const Home = ({ history, location }) => {
           )}
 
           <AnswerButton
-            onClick={answerOrCall}
+            onClick={() => answerOrCall(currentLine)}
             disabled={
               !phone?.isRegistered() ||
-              session?.isEstablished() ||
-              (session?.isInProgress() && session?.direction !== 'incoming')
+              lines[currentLine].session?.isEstablished() ||
+              (lines[currentLine].session?.isInProgress() &&
+                lines[currentLine].session?.direction !== 'incoming')
             }>
             <FaPhone color="#389400" />
           </AnswerButton>
         </DialPad>
+
+        <Footer onClick={openExternalUrl}>
+          Copyright © 2020 Native IP
+          <BiWorld size={12} />
+        </Footer>
 
         <audio ref={ringAudio} src={ringtone} />
         <audio ref={remoteAudio} />
