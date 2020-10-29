@@ -48,9 +48,8 @@ const PhoneBook = ({ history }) => {
         return (
           contact.name?.toLowerCase()?.includes(debouncedSearchTerm.toLowerCase()) ||
           contact.company?.toLowerCase()?.includes(debouncedSearchTerm.toLowerCase()) ||
-          contact.phone?.toLowerCase()?.includes(debouncedSearchTerm.toLowerCase()) ||
-          contact.email?.toLowerCase()?.includes(debouncedSearchTerm.toLowerCase()) ||
-          String(contact.username)?.toLowerCase()?.includes(debouncedSearchTerm.toLowerCase())
+          String(contact.phone)?.toLowerCase()?.includes(debouncedSearchTerm.toLowerCase()) ||
+          contact.email?.toLowerCase()?.includes(debouncedSearchTerm.toLowerCase())
         );
       });
 
@@ -146,9 +145,9 @@ const PhoneBook = ({ history }) => {
         ) : (
           <>
             <Contacts>
-              {(debouncedSearchTerm ? contactsFiltered : contacts).map(contact => (
+              {(debouncedSearchTerm ? contactsFiltered : contacts).map((contact, index) => (
                 <Contact
-                  key={contact.id}
+                  key={index}
                   onClick={() => callNumber(contact.phone || contact.username)}
                   onMouseEnter={event => showTooltip(event, 'Clique para chamar')}
                   onMouseLeave={hideTooltip}>

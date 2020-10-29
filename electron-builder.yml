@@ -35,4 +35,4 @@ linux:
   category: public.utilities.tools
   target:
     - deb
-    - AppImage
+    - rpm
