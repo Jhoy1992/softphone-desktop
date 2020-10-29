@@ -47,11 +47,10 @@ app.on('window-all-closed', () => {
 app.on('ready', async () => {
   mainWindow = new BrowserWindow({
     width: isDevelopment ? 640 : 250,
-    // width: 640,
     height: 490,
     show: false,
     frame: false,
-    resizable: false,
+    resizable: isDevelopment ? true : false,
     icon,
     // alwaysOnTop: true,
     webPreferences: {

@@ -65,6 +65,26 @@ export const PeerInfo = styled.div`
   }
 `;
 
+export const LostCalls = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-self: center;
+
+  cursor: pointer;
+  background-color: #dc3545;
+  padding: 0 5px;
+  margin-top: 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+  }
+`;
+
 export const Lines = styled.div`
   display: flex;
   flex-direction: row;

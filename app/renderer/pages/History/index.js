@@ -103,6 +103,11 @@ const History = ({ history }) => {
 
       replace ? setCalls(newCalls) : setCalls([...calls, ...newCalls]);
       setPage(page);
+
+      if (page === 1) {
+        await readLostCallsNotifications();
+      }
+
       setLoading(false);
 
       if (page > 1) {
@@ -110,6 +115,22 @@ const History = ({ history }) => {
       }
     } catch (error) {
       dispatch(addNotification({ message: 'Erro ao buscar os dados do histórico', type: 'error' }));
+      setLoading(false);
+    }
+  };
+
+  const readLostCallsNotifications = async () => {
+    try {
+      const { data } = await api.post(`https://${state.user.api}/api/token`, {
+        username: state.user.user,
+        password: state.user.pass,
+      });
+
+      api.defaults.headers['Authorization'] = `Bearer ${data.token}`;
+
+      await api.get(`https://${state.user.api}/api/historyCallsNotifications/${data.user.Peer.id}`);
+    } catch (error) {
+      dispatch(addNotification({ message: 'Erro ao ler as chamadas perdidas', type: 'error' }));
       setLoading(false);
     }
   };
@@ -162,8 +183,9 @@ const History = ({ history }) => {
               {calls.map(call => (
                 <Call
                   key={call.id}
+                  notify={call.notify}
                   onClick={() => callNumber(call.phone)}
-                  onMouseEnter={event => showTooltip(event, 'Esse é um teste de tooltip')}
+                  onMouseEnter={event => showTooltip(event, 'Clique para chamar')}
                   onMouseLeave={hideTooltip}>
                   <div>
                     <div>
@@ -176,7 +198,7 @@ const History = ({ history }) => {
 
                   <div>
                     <span>
-                      <strong>{call.phone} </strong>
+                      <strong>{call.phone}</strong>
                       {`<${call.name}>`}
                     </span>
                   </div>

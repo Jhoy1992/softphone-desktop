@@ -7,6 +7,7 @@ import { addNotification } from '../../actions/notificationsActions';
 import { toggleMenu } from '../../actions/menuActions';
 import { saveUser } from '../../actions/userActions';
 import { savePeer } from '../../actions/peerActions';
+import { connect, disconnect } from '../../actions/socketActions';
 
 import Header from '../../components/Header';
 import Menu from '../../components/Menu';
@@ -33,6 +34,9 @@ const User = ({ history }) => {
     localStorage.setItem('peer', JSON.stringify(peer));
     dispatch(saveUser(user));
     dispatch(savePeer(peer));
+
+    dispatch(disconnect(state.socket));
+    dispatch(connect(user.api));
 
     dispatch(addNotification({ message: 'Configuração salva com sucesso', type: 'success' }));
     history.push('/');

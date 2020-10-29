@@ -78,13 +78,27 @@ const PhoneBook = ({ history }) => {
 
       api.defaults.headers['Authorization'] = `Bearer ${data.token}`;
 
-      const { data: newContacts } = await api.get(`https://${state.user.api}/api/contacts`);
+      const { data: contacts } = await api.get(`https://${state.user.api}/api/contacts`);
 
       const { data: peers } = await api.get(`https://${state.user.api}/api/peers`, {
         params: { attributes: '["id", "name", "username", "email", "sipRegStatus"]' },
       });
 
-      setContacts([...newContacts, ...peers]);
+      const newContacts = [];
+
+      newContacts.push(...contacts);
+      newContacts.push(
+        ...peers.map(({ id, name, username: phone, email, sipRegStatus: status }) => ({
+          id,
+          name,
+          phone,
+          email,
+          status,
+        })),
+      );
+      newContacts.sort((a, b) => (a.name > b.name ? 1 : -1));
+
+      setContacts([...newContacts]);
 
       setLoading(false);
     } catch (error) {
@@ -154,10 +168,8 @@ const PhoneBook = ({ history }) => {
 
                   <div>
                     <BiPhone size={12} />
-                    <strong>{contact.phone || contact.username}</strong>
-                    {contact.sipRegStatus && (
-                      <BsCircleFill color={STATUS[contact.sipRegStatus]} size={8} />
-                    )}
+                    <strong>{contact.phone}</strong>
+                    {contact.status && <BsCircleFill color={STATUS[contact.status]} size={8} />}
                   </div>
 
                   {contact.email && (

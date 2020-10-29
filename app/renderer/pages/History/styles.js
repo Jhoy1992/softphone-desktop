@@ -83,6 +83,11 @@ export const Call = styled.div`
     }
   }
 
+  div:first-child {
+    color: ${props => (props.notify ? '#dc3545' : '#000')};
+    font-weight: ${props => (props.notify ? 'bold' : 'normal')};
+  }
+
   div:last-child {
     margin-top: 3px;
   }

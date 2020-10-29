@@ -3,6 +3,7 @@ import React, { createContext, useReducer } from 'react';
 import loadLocalStorageDevices from './utils/loadLocalStorageDevices';
 import loadLocalStorageUser from './utils/loadLocalStorageUser';
 import loadLocalStoragePeer from './utils/loadLocalStoragePeer';
+import { connectToMonitorSocket, disconnectFromMonitorSocket } from './utils/monitorSocket';
 
 const initialState = {
   notifications: [],
@@ -11,6 +12,7 @@ const initialState = {
   peer: loadLocalStoragePeer(),
   showMenu: false,
   tooltip: {},
+  socket: connectToMonitorSocket(loadLocalStorageUser().api),
 };
 
 const store = createContext(initialState);
@@ -57,6 +59,18 @@ const StoreProvider = ({ children }) => {
         return {
           ...state,
           tooltip: action.payload,
+        };
+
+      case 'CONNECT_SOCKET':
+        return {
+          ...state,
+          socket: connectToMonitorSocket(action.payload.server),
+        };
+
+      case 'DISCONNECT_SOCKET':
+        return {
+          ...state,
+          socket: disconnectFromMonitorSocket(action.payload.socket),
         };
 
       default:

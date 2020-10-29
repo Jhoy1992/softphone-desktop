@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { remote } from 'electron';
 import * as JsSIP from 'jssip';
 import {
@@ -8,13 +8,16 @@ import {
   FaPhone,
   FaPhoneSlash,
   FaPhoneAlt,
+  FaTimes,
 } from 'react-icons/fa';
 import { BiWorld } from 'react-icons/bi';
+import { MdCallMissed } from 'react-icons/md';
+
+import api from '../../services/api';
 
 import { store } from '../../store';
 import { toggleMenu } from '../../actions/menuActions';
 import { addNotification } from '../../actions/notificationsActions';
-import { toggleTooltip } from '../../actions/tooltipActions';
 
 import useRefState from '../../hooks/useReferredState';
 import PlayTone from '../../utils/tones';
@@ -31,6 +34,7 @@ import {
   Divisor,
   CallNumber,
   CallerInfo,
+  LostCalls,
   PeerInfo,
   Lines,
   Line,
@@ -55,6 +59,7 @@ const Home = ({ history, location }) => {
   const { dispatch, state } = useContext(store);
   const { devices } = state;
   const [dialNumbers] = useState(DIAL_KEYS);
+  const [lostCalls, lostCallsRef, setLostCalls] = useRefState(0);
   const [phoneStatus, phoneStatusRef, setPhoneStatus] = useRefState('');
   const [phone, phoneRef, setPhone] = useRefState(null);
   const [ringtone, setRingtone] = useState('');
@@ -72,6 +77,8 @@ const Home = ({ history, location }) => {
     register();
     setCallSpeaker(devices?.speaker.deviceId);
     adjustVolumeLevels(devices);
+    subscribeLostCalls(state.socket);
+    loadLostCalls();
     changeLine(currentLine);
 
     callRouteNumber(location.state?.number);
@@ -145,6 +152,42 @@ const Home = ({ history, location }) => {
         answerOrCall(currentLineRef.current, location.state?.number);
       }
     }, 500);
+  };
+
+  const subscribeLostCalls = socket => {
+    if (!socket) {
+      return;
+    }
+
+    socket.on('historyCallReceived', ({ destCallerIdNum, dialStatus }) => {
+      if (destCallerIdNum != state.peer?.user || dialStatus === 'ANSWER') {
+        return;
+      }
+
+      setLostCalls(lostCallsRef.current + 1);
+    });
+  };
+
+  const loadLostCalls = async () => {
+    if (!state.user?.user || !state.user?.pass || !state.user?.api) {
+      return;
+    }
+
+    const { data } = await api.post(`https://${state.user.api}/api/token`, {
+      username: state.user.user,
+      password: state.user.pass,
+    });
+
+    api.defaults.headers['Authorization'] = `Bearer ${data.token}`;
+
+    const { data: lostCalls } = await api.get(`https://${state.user.api}/api/historyCalls`, {
+      params: {
+        peerId: data.user.Peer.id,
+        notify: true,
+      },
+    });
+
+    setLostCalls(lostCalls.length);
   };
 
   const handleNewSession = newSession => {
@@ -334,13 +377,13 @@ const Home = ({ history, location }) => {
     }
 
     if (line.session?.isEstablished()) {
-      clearSession(line.session);
+      clearSession(lineIndex, line.session);
       return;
     }
 
     if (line.session?.isInProgress()) {
       if (line.session?.direction === 'outgoing') {
-        clearSession(line.session);
+        clearSession(lineIndex, line.session);
         return;
       }
 
@@ -351,7 +394,7 @@ const Home = ({ history, location }) => {
       }
     }
 
-    if (!line.callNumber?.length) {
+    if (!line.callNumber?.length && !callNumber) {
       return;
     }
 
@@ -593,6 +636,12 @@ const Home = ({ history, location }) => {
           )}
 
           <Divisor />
+
+          {lostCalls > 0 && (
+            <LostCalls onClick={() => history.push('/history')}>
+              <MdCallMissed size={16} /> {lostCalls} chamada{lostCalls === 1 ? '' : 's'} perdidas
+            </LostCalls>
+          )}
 
           {!lines[currentLine].session && <CallNumber>{lines[currentLine].callNumber}</CallNumber>}
 

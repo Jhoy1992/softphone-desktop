@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { HashRouter } from 'react-router-dom';
 
 import { StoreProvider } from './store';
+import { SocketProvider } from './contexts/socketContext';
 
 import Routes from './routes';
 import Notifications from './components/Notifications';
