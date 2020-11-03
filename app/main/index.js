@@ -36,7 +36,28 @@ const createTray = () => {
   return appIcon;
 };
 
-app.disableHardwareAcceleration();
+const autoLaunch = async () => {
+  if (isDevelopment) {
+    return;
+  }
+
+  app.setLoginItemSettings({ openAtLogin: true });
+
+  if (process.platform === 'linux') {
+    const AutoLaunch = require('auto-launch');
+
+    const softphoneAutoLauncher = new AutoLaunch({
+      name: app.getName(),
+      path: app.getPath('exe').replace(/(\s+)/g, '\\$1'),
+    });
+
+    if (!(await softphoneAutoLauncher.isEnabled())) {
+      await softphoneAutoLauncher.enable();
+    }
+  }
+};
+
+autoLaunch();
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

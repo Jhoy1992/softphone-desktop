@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "@babel/register": "^7.12.1",
+    "auto-launch": "^5.0.5",
     "axios": "^0.21.0",
     "jssip": "^3.5.8",
     "prop-types": "^15.7.2",
